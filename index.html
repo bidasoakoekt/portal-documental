@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal Documental · Bidasoako EKT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script>emailjs.init({ publicKey: 'wZmz984DdknkhQ8Gn' });</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red:      #C41217;
+      --green:    #2A6E2A;
+      --black:    #111111;
+      --cream:    #FAF8F4;
+      --stone:    #EDE9E2;
+      --muted:    #7A7168;
+      --white:    #FFFFFF;
+      --sidebar-w: 280px;
+      --header-h:  60px;
+      --node-w:    160px;
+      --gap-y:      72px;
+      --gap-x:      18px;
+    }
+
+    html, body {
+      height: 100%; font-family: 'Inter', sans-serif;
+      background: var(--cream); color: var(--black); overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: fixed; top: 0; left: 0; right: 0; height: var(--header-h);
+      background: var(--black);
+      display: flex; align-items: center; gap: 14px;
+      padding: 0 16px; z-index: 100;
+      border-bottom: 3px solid var(--red);
+    }
+    .hamburger {
+      background: none; border: none; cursor: pointer;
+      display: flex; flex-direction: column; gap: 5px; padding: 6px; flex-shrink: 0;
+    }
+    .hamburger span { display: block; width: 22px; height: 2px; background: var(--white); transition: all .25s ease; }
+    body.sidebar-open .hamburger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    body.sidebar-open .hamburger span:nth-child(2) { opacity: 0; }
+    body.sidebar-open .hamburger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .header-logo { height: 32px; flex-shrink: 0; }
+    .header-divider { width: 1px; height: 28px; background: #333; flex-shrink: 0; }
+    .header-title { color: var(--white); font-family: 'Playfair Display', serif; font-size: 14px; line-height: 1.25; min-width: 0; }
+    .header-title span { display: block; font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 500; color: #999; letter-spacing: .06em; text-transform: uppercase; }
+
+    /* ── SIDEBAR ── */
+    aside {
+      position: fixed; top: var(--header-h); left: 0; bottom: 0;
+      width: var(--sidebar-w); background: var(--black);
+      transform: translateX(calc(-1 * var(--sidebar-w)));
+      transition: transform .3s cubic-bezier(.4,0,.2,1);
+      z-index: 90; overflow-y: auto; padding: 20px 0 40px;
+      border-right: 1px solid #222;
+    }
+    body.sidebar-open aside { transform: translateX(0); }
+
+    .sidebar-section { padding: 0 16px; margin-bottom: 4px; }
+    .sidebar-label { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #555; padding: 12px 0 6px; border-top: 1px solid #1e1e1e; margin-top: 6px; }
+    .sidebar-label:first-child { border-top: none; margin-top: 0; }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 6px;
+      color: #ccc; font-size: 13px; font-weight: 500;
+      text-decoration: none; cursor: pointer;
+      transition: background .15s, color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sidebar-link:hover, .sidebar-link:active { background: #1e1e1e; color: var(--white); }
+    .sidebar-link .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+    .sidebar-reset {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 6px;
+      color: #E88; font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: background .15s, color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sidebar-reset:hover, .sidebar-reset:active { background: #1e1e1e; color: #FF9999; }
+    .sidebar-info { padding: 16px; font-size: 11px; color: #444; line-height: 1.6; border-top: 1px solid #1a1a1a; margin-top: 12px; }
+
+    /* ── OVERLAY ── */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 80; opacity: 0; transition: opacity .3s; }
+    body.sidebar-open .overlay { display: block; opacity: 1; }
+
+    /* ── MAIN ── */
+    main {
+      position: fixed; top: var(--header-h); left: 0; right: 0; bottom: 0;
+      overflow: auto; -webkit-overflow-scrolling: touch;
+      transition: left .3s cubic-bezier(.4,0,.2,1);
+    }
+    body.sidebar-open main { left: var(--sidebar-w); }
+
+    /* ── CANVAS OUTER — enables free scroll in both directions ── */
+    .canvas-outer {
+      display: inline-flex;   /* shrink-wrap to real content width */
+      min-width: 100%;        /* at least fill the viewport        */
+      justify-content: center;
+    }
+
+    /* ── CANVAS ── */
+    .canvas {
+      padding: 48px 60px 100px;  /* generous sides so edge nodes are visible */
+      display: flex; flex-direction: column;
+      align-items: center; gap: 0;
+      position: relative;
+      flex-shrink: 0;  /* never squeeze — grow wider than viewport when needed */
+    }
+
+    /* ── SVG CONNECTORS ── */
+    #connector-svg {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; overflow: visible;
+    }
+    #connector-svg path {
+      fill: none; stroke: #C8BFB0; stroke-width: 1.5;
+      pointer-events: stroke; cursor: pointer;
+      transition: stroke .2s, stroke-width .2s, opacity .3s;
+    }
+    #connector-svg path:hover { stroke: var(--red); stroke-width: 2.5; }
+    #connector-svg path.hitarea { stroke: transparent; stroke-width: 20; pointer-events: stroke; cursor: pointer; }
+    #connector-svg path.hidden { opacity: 0; pointer-events: none; }
+
+    /* ── ROWS & NODES ── */
+    .row { display: flex; align-items: flex-start; justify-content: center; gap: var(--gap-x); position: relative; z-index: 2; }
+    .spacer { height: var(--gap-y); }
+
+    /* node hide/show */
+    .node-wrap { transition: opacity .35s, transform .35s; }
+    .node-wrap.hidden { opacity: 0; pointer-events: none; transform: translateY(-12px); }
+
+    .node {
+      width: var(--node-w);
+      background: var(--white);
+      border: 1.5px solid #D6CFC6; border-radius: 10px;
+      padding: 14px 12px 12px;
+      cursor: pointer; position: relative;
+      transition: border-color .2s, box-shadow .2s, transform .15s;
+      text-align: center; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .node:hover { border-color: var(--red); box-shadow: 0 4px 18px rgba(196,18,23,.13); transform: translateY(-2px); }
+    .node.expanded { border-color: var(--red); background: #FFF8F8; }
+    /* border-top color applied dynamically by JS based on depth level */
+
+    .node-code  { font-size: 9px; font-weight: 600; color: var(--muted); letter-spacing: .05em; margin-bottom: 4px; }
+    .node-title { font-family: 'Playfair Display', serif; font-size: 12px; font-weight: 600; color: var(--black); line-height: 1.3; }
+    .node-badge { margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; font-size: 9px; font-weight: 500; color: var(--muted); background: var(--stone); border-radius: 20px; padding: 2px 7px; }
+
+    /* chevron = has children (expandable); stop = leaf (no children) */
+    .node-chevron { font-size: 10px; color: var(--red); margin-top: 6px; display: block; transition: transform .25s; }
+    .node.expanded .node-chevron { transform: rotate(180deg); }
+    .node-stop { display: block; margin-top: 6px; width: 28px; height: 4px; border-radius: 2px; background: #D6CFC6; margin-left: auto; margin-right: auto; }
+
+    /* "En construcción" badge */
+    .node-wip { font-size: 9px; color: #B8960C; margin-top: 6px; display: block; font-weight: 600; letter-spacing: .04em; }
+
+    .canvas-footer { margin-top: 60px; font-size: 11px; color: #C8BFB0; letter-spacing: .04em; text-align: center; }
+
+    /* ── MODAL ── */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(17,17,17,.6); backdrop-filter: blur(4px);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      background: var(--white); border-radius: 14px;
+      width: min(520px, 92vw);
+      max-height: 82vh;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      overflow: hidden; display: flex; flex-direction: column;
+      animation: modal-in .22s ease;
+    }
+    @keyframes modal-in { from { transform: scale(.96) translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    /* Mobile: sheet from bottom */
+    @media (max-width: 600px) {
+      .modal-backdrop { align-items: flex-end; }
+      .modal { border-radius: 16px 16px 0 0; width: 100%; max-width: 100%; animation: slide-up .25s cubic-bezier(.4,0,.2,1); }
+      @keyframes slide-up { from { transform: translateY(100%); } to { transform: none; } }
+      .modal-handle { display: block !important; }
+    }
+
+    .modal-handle { display: none; width: 36px; height: 4px; border-radius: 2px; background: #ddd; margin: 10px auto 0; }
+
+    .modal-header { background: var(--black); padding: 18px 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; }
+    .modal-header-text { flex: 1; }
+    .modal-code  { font-size: 11px; font-weight: 500; color: #888; letter-spacing: .05em; margin-bottom: 4px; }
+    .modal-title { font-family: 'Playfair Display', serif; font-size: 17px; color: var(--white); line-height: 1.3; }
+    .modal-close { background: #222; border: none; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #888; font-size: 20px; line-height: 1; transition: background .15s, color .15s; flex-shrink: 0; }
+    .modal-close:hover { background: var(--red); color: var(--white); }
+
+    .modal-body { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 18px 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Docs section */
+    .modal-section-label { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+
+    .doc-list { display: flex; flex-direction: column; gap: 8px; }
+    .doc-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border: 1.5px solid var(--stone); border-radius: 10px;
+      text-decoration: none; color: var(--black);
+      transition: border-color .15s, background .15s;
+      -webkit-tap-highlight-color: transparent; min-height: 54px;
+    }
+    .doc-item:hover, .doc-item:active { border-color: var(--red); background: #FFF8F8; }
+    .doc-icon { width: 36px; height: 36px; border-radius: 8px; background: #FDF3F3; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .doc-icon svg { color: var(--red); }
+    .doc-info { flex: 1; min-width: 0; }
+    .doc-name { font-size: 12.5px; font-weight: 500; line-height: 1.35; word-break: break-word; }
+    .doc-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .doc-arrow { color: #ccc; font-size: 16px; flex-shrink: 0; }
+
+    /* Children section */
+    .children-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+
+    .child-card {
+      background: var(--cream); border: 1.5px solid #D6CFC6; border-radius: 8px;
+      padding: 10px 10px 8px; cursor: pointer; text-align: center;
+      transition: border-color .15s, box-shadow .15s, background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .child-card:hover, .child-card:active { border-color: var(--red); background: #FFF8F8; box-shadow: 0 2px 10px rgba(196,18,23,.1); }
+    .child-card.wip { cursor: default; opacity: .65; }
+    .child-card.wip:hover { border-color: #D6CFC6; background: var(--cream); box-shadow: none; }
+    .child-card-stripe { height: 3px; border-radius: 2px; margin-bottom: 8px; }
+    /* stripe colors applied dynamically by JS */
+    .child-card-code { font-size: 9px; font-weight: 600; color: var(--muted); letter-spacing: .05em; margin-bottom: 3px; }
+    .child-card-title { font-family: 'Playfair Display', serif; font-size: 11.5px; font-weight: 600; color: var(--black); line-height: 1.3; }
+    .child-card-hint { font-size: 10px; color: var(--red); margin-top: 5px; }
+    .child-card-wip  { font-size: 10px; color: #B8960C; margin-top: 5px; font-weight: 600; }
+
+    /* Expand-all button */
+    .modal-expand-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; padding: 10px 14px;
+      background: var(--cream); border: 1.5px solid #D6CFC6; border-radius: 8px;
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      cursor: pointer; margin-top: 10px;
+      transition: border-color .15s, background .15s, color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .modal-expand-btn:hover, .modal-expand-btn:active { border-color: var(--red); background: #FFF8F8; color: var(--red); }
+
+    /* WIP notice when no real children */
+    .modal-wip {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 14px; border: 1.5px dashed #D6CFC6; border-radius: 8px;
+      font-size: 12px; color: #B8960C; font-weight: 500;
+    }
+
+    /* ── LOADING SCREEN ── */
+    #loading-screen {
+      position: fixed; inset: 0; z-index: 600;
+      background: var(--black);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 20px;
+    }
+    #loading-screen.hidden { display: none; }
+    .loading-logo { height: 44px; margin-bottom: 8px; }
+    .loading-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #333;
+      border-top-color: var(--red);
+      border-radius: 50%;
+      animation: spin .9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 500;
+      color: #888; letter-spacing: .04em;
+    }
+    .loading-sub {
+      font-size: 11px; color: #555;
+      margin-top: -12px; letter-spacing: .03em;
+    }
+
+    /* ── ADMIN PANEL ── */
+    .admin-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(17,17,17,.7); backdrop-filter: blur(4px);
+      z-index: 300; align-items: center; justify-content: center;
+    }
+    .admin-backdrop.open { display: flex; }
+
+    .admin-panel {
+      background: var(--white); border-radius: 16px;
+      width: min(640px, 96vw); max-height: 90vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 24px 80px rgba(0,0,0,.3);
+      animation: modal-in .22s ease; overflow: hidden;
+    }
+    .admin-header {
+      background: var(--black); padding: 18px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 3px solid var(--red); flex-shrink: 0;
+    }
+    .admin-header-title { font-family: 'Playfair Display', serif; font-size: 17px; color: var(--white); }
+    .admin-header-sub   { font-size: 11px; color: #888; margin-top: 2px; }
+    .admin-close { background: #222; border: none; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #888; font-size: 20px; transition: background .15s, color .15s; }
+    .admin-close:hover { background: var(--red); color: var(--white); }
+
+    .admin-body { display: flex; flex: 1; overflow: hidden; }
+
+    /* Left: node list */
+    .admin-nodes {
+      width: 200px; flex-shrink: 0;
+      border-right: 1px solid var(--stone);
+      overflow-y: auto; padding: 10px 0;
+      background: var(--cream);
+    }
+    .admin-node-item {
+      padding: 10px 16px; font-size: 13px; cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background .12s, border-color .12s;
+      line-height: 1.3;
+    }
+    .admin-node-item:hover { background: #EDE9E2; }
+    .admin-node-item.active { background: #FFF8F8; border-left-color: var(--red); font-weight: 600; }
+    .admin-node-code { font-size: 9px; color: var(--muted); font-weight: 600; letter-spacing: .04em; display: block; }
+
+    /* Right: doc editor */
+    .admin-docs {
+      flex: 1; overflow-y: auto; padding: 18px 20px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .admin-docs-label { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .admin-empty { font-size: 13px; color: #bbb; font-style: italic; padding: 8px 0; }
+
+    .admin-doc-row {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: var(--cream); border: 1.5px solid #D6CFC6;
+      border-radius: 8px; padding: 10px 12px;
+    }
+    .admin-doc-inputs { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .admin-doc-inputs input {
+      width: 100%; border: 1px solid #D6CFC6; border-radius: 6px;
+      padding: 7px 10px; font-size: 12px; font-family: 'Inter', sans-serif;
+      background: var(--white); color: var(--black);
+      transition: border-color .15s;
+    }
+    .admin-doc-inputs input:focus { outline: none; border-color: var(--red); }
+    .admin-doc-inputs input::placeholder { color: #bbb; }
+
+    .admin-doc-btns { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+    .admin-btn-icon {
+      width: 28px; height: 28px; border: none; border-radius: 6px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; transition: background .15s;
+    }
+    .admin-btn-del   { background: #FEE; color: #C41217; }
+    .admin-btn-del:hover { background: #C41217; color: var(--white); }
+    .admin-btn-up    { background: var(--stone); color: var(--muted); }
+    .admin-btn-up:hover { background: #ccc; }
+
+    .admin-add-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; border: 1.5px dashed #C8BFB0; border-radius: 8px;
+      background: none; cursor: pointer; font-size: 13px; font-weight: 600;
+      color: var(--muted); width: 100%; transition: border-color .15s, color .15s;
+    }
+    .admin-add-btn:hover { border-color: var(--red); color: var(--red); }
+
+    .admin-footer {
+      padding: 14px 20px; border-top: 1px solid var(--stone);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-shrink: 0; background: var(--cream);
+    }
+    .admin-status { font-size: 12px; color: var(--muted); }
+    .admin-status.ok  { color: var(--green); }
+    .admin-status.err { color: var(--red); }
+    .admin-save-btn {
+      padding: 9px 20px; background: var(--red); color: var(--white);
+      border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background .15s;
+    }
+    .admin-save-btn:hover { background: var(--red-dk, #9A0D11); }
+    .admin-save-btn:disabled { background: #ccc; cursor: default; }
+
+    /* PIN modal */
+    .pin-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(17,17,17,.7); backdrop-filter: blur(4px);
+      z-index: 400; align-items: center; justify-content: center;
+    }
+    .pin-backdrop.open { display: flex; }
+    .pin-box {
+      background: var(--white); border-radius: 14px;
+      width: min(320px, 92vw); padding: 28px 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+      text-align: center; animation: modal-in .22s ease;
+    }
+    .pin-box h3 { font-family: 'Playfair Display', serif; font-size: 18px; margin-bottom: 6px; }
+    .pin-box p  { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+    .pin-input {
+      width: 100%; border: 1.5px solid #D6CFC6; border-radius: 8px;
+      padding: 11px 14px; font-size: 18px; letter-spacing: .3em;
+      text-align: center; font-family: 'Inter', sans-serif;
+      transition: border-color .15s; margin-bottom: 12px;
+    }
+    .pin-input:focus { outline: none; border-color: var(--red); }
+    .pin-submit {
+      width: 100%; padding: 11px; background: var(--red); color: var(--white);
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background .15s;
+    }
+    .pin-submit:hover { background: #9A0D11; }
+    .pin-error { font-size: 12px; color: var(--red); margin-top: 8px; display: none; }
+
+    .sidebar-admin {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 6px;
+      color: #aaa; font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .sidebar-admin:hover { background: #1e1e1e; color: #FFD700; }
+  </style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen">
+  <img src="logotipo-horizontal-positivo.png" alt="EKT" class="loading-logo" />
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Conectando con la base de datos…</div>
+  <div class="loading-sub">Por favor, espera</div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <button class="hamburger" id="hamburger" aria-label="Menú">
+    <span></span><span></span><span></span>
+  </button>
+  <img src="logotipo-horizontal-positivo.png" alt="Bidasoako EKT" class="header-logo" />
+  <div class="header-divider"></div>
+  <div class="header-title">
+    Portal Documental
+    <span>Gestión interna · EKT</span>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Navegación</div>
+    <a class="sidebar-link" onclick="jumpTo('intro')"><span class="dot"></span> Ir a Introducción</a>
+    <a class="sidebar-link" onclick="jumpTo('BTZ000')" id="sb-BTZ000"><span class="dot"></span> BTZ000 · Junta</a>
+    <a class="sidebar-link" onclick="jumpTo('ZDZ000')" id="sb-ZDZ000"><span class="dot"></span> ZDZ000 · Dirección</a>
+    <a class="sidebar-link" onclick="jumpTo('IDZ000')" id="sb-IDZ000"><span class="dot"></span> IDZ000 · Secretaría</a>
+    <a class="sidebar-link" onclick="jumpTo('DRZ000')" id="sb-DRZ000"><span class="dot"></span> DRZ000 · Tesorería</a>
+    <a class="sidebar-link" onclick="jumpTo('MTN000')" id="sb-MTN000"><span class="dot"></span> MTN000 · Mantenimiento</a>
+    <a class="sidebar-link" onclick="jumpTo('BG000')"  id="sb-BG000"><span class="dot"></span>  BG000 · Bodega</a>
+    <a class="sidebar-link" onclick="jumpTo('KLT000')" id="sb-KLT000"><span class="dot"></span> KLT000 · Cultura</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Acciones</div>
+    <a class="sidebar-reset" onclick="resetAll()">↺ &nbsp;Contraer todo</a>
+    <a class="sidebar-admin" onclick="openPinModal()">🔐 &nbsp;Administrar documentos</a>
+  </div>
+  <div class="sidebar-info">
+    Los documentos se abren en Google Drive. El enlace es permanente aunque el documento se renombre.
+  </div>
+</aside>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- MAIN -->
+<main id="main">
+  <div class="canvas-outer">
+  <div class="canvas" id="canvas">
+    <svg id="connector-svg" aria-hidden="true"></svg>
+
+    <!-- Row 1: Introducción -->
+    <div class="row">
+      <div class="node-wrap" id="wrap-intro">
+        <div class="node intro" id="node-intro" onclick="handleNodeClick('intro')">
+          <div class="node-code">EKT</div>
+          <div class="node-title">Introducción</div>
+          <div class="node-badge">1 documento</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spacer" id="spacer-1"></div>
+
+    <!-- Row 2: BTZ000 -->
+    <div class="row">
+      <div class="node-wrap hidden" id="wrap-BTZ000">
+        <div class="node root" id="node-BTZ000" onclick="handleNodeClick('BTZ000')">
+          <div class="node-code">BTZ000</div>
+          <div class="node-title">Función Junta</div>
+          <div class="node-badge">2 documentos</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spacer" id="spacer-2"></div>
+
+    <!-- Row 3: 6 funciones hoja -->
+    <div class="row" id="row-leaves">
+      <div class="node-wrap hidden" id="wrap-ZDZ000">
+        <div class="node leaf" id="node-ZDZ000" onclick="handleNodeClick('ZDZ000')">
+          <div class="node-code">ZDZ000</div>
+          <div class="node-title">Función Dirección</div>
+          <div class="node-badge">1 documento</div>
+        </div>
+      </div>
+      <div class="node-wrap hidden" id="wrap-IDZ000">
+        <div class="node leaf" id="node-IDZ000" onclick="handleNodeClick('IDZ000')">
+          <div class="node-code">IDZ000</div>
+          <div class="node-title">Función Secretaría</div>
+          <div class="node-badge">1 documento</div>
+        </div>
+      </div>
+      <div class="node-wrap hidden" id="wrap-DRZ000">
+        <div class="node leaf" id="node-DRZ000" onclick="handleNodeClick('DRZ000')">
+          <div class="node-code">DRZ000</div>
+          <div class="node-title">Función Tesorería</div>
+          <div class="node-badge">1 documento</div>
+        </div>
+      </div>
+      <div class="node-wrap hidden" id="wrap-MTN000">
+        <div class="node leaf" id="node-MTN000" onclick="handleNodeClick('MTN000')">
+          <div class="node-code">MTN000</div>
+          <div class="node-title">Función Mantenimiento</div>
+          <div class="node-badge">1 documento</div>
+        </div>
+      </div>
+      <div class="node-wrap hidden" id="wrap-BG000">
+        <div class="node leaf" id="node-BG000" onclick="handleNodeClick('BG000')">
+          <div class="node-code">BG000</div>
+          <div class="node-title">Función Bodega</div>
+          <div class="node-badge">1 documento</div>
+        </div>
+      </div>
+      <div class="node-wrap hidden" id="wrap-KLT000">
+        <div class="node leaf" id="node-KLT000" onclick="handleNodeClick('KLT000')">
+          <div class="node-code">KLT000</div>
+          <div class="node-title">Función Cultura</div>
+          <div class="node-badge">1 documento</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 4: DRZ hijos nivel 3 -->
+    <div class="spacer"></div>
+    <div class="row">
+      <div class="node-wrap hidden" id="wrap-DRZ100"><div class="node" id="node-DRZ100" onclick="handleNodeClick('DRZ100')"><div class="node-code">DRZ100</div><div class="node-title">Presupuestos</div><div class="node-badge">1 documento</div></div></div>
+      <div class="node-wrap hidden" id="wrap-DRZ200"><div class="node" id="node-DRZ200" onclick="handleNodeClick('DRZ200')"><div class="node-code">DRZ200</div><div class="node-title">Pagos y Cobros</div><div class="node-badge">1 documento</div></div></div>
+      <div class="node-wrap hidden" id="wrap-DRZ300"><div class="node" id="node-DRZ300" onclick="handleNodeClick('DRZ300')"><div class="node-code">DRZ300</div><div class="node-title">Auditoría</div><div class="node-badge">1 documento</div></div></div>
+    </div>
+
+    <!-- Row 5: DRZ100 hijos nivel 4 -->
+    <div class="spacer"></div>
+    <div class="row">
+      <div class="node-wrap hidden" id="wrap-DRZ110"><div class="node" id="node-DRZ110" onclick="handleNodeClick('DRZ110')"><div class="node-code">DRZ110</div><div class="node-title">Presupuesto Anual</div><div class="node-badge">1 documento</div></div></div>
+      <div class="node-wrap hidden" id="wrap-DRZ120"><div class="node" id="node-DRZ120" onclick="handleNodeClick('DRZ120')"><div class="node-code">DRZ120</div><div class="node-title">Presupuesto Eventos</div><div class="node-badge">1 documento</div></div></div>
+      <div class="node-wrap hidden" id="wrap-DRZ130"><div class="node" id="node-DRZ130" onclick="handleNodeClick('DRZ130')"><div class="node-code">DRZ130</div><div class="node-title">Reservas</div><div class="node-badge">1 documento</div></div></div>
+    </div>
+
+    <!-- Row 6: DRZ110 hijos nivel 5 -->
+    <div class="spacer"></div>
+    <div class="row">
+      <div class="node-wrap hidden" id="wrap-DRZ111"><div class="node" id="node-DRZ111" onclick="handleNodeClick('DRZ111')"><div class="node-code">DRZ111</div><div class="node-title">Ejercicio Corriente</div><div class="node-badge">1 documento</div></div></div>
+      <div class="node-wrap hidden" id="wrap-DRZ112"><div class="node" id="node-DRZ112" onclick="handleNodeClick('DRZ112')"><div class="node-code">DRZ112</div><div class="node-title">Histórico</div><div class="node-badge">1 documento</div></div></div>
+    </div>
+
+    <!-- Row 7: DRZ111 hijos nivel 6 -->
+    <div class="spacer"></div>
+    <div class="row">
+      <div class="node-wrap hidden" id="wrap-DRZ111A"><div class="node" id="node-DRZ111A" onclick="handleNodeClick('DRZ111A')"><div class="node-code">DRZ111A</div><div class="node-title">Aprobación Junta</div><div class="node-badge">1 documento</div></div></div>
+      <div class="node-wrap hidden" id="wrap-DRZ111B"><div class="node" id="node-DRZ111B" onclick="handleNodeClick('DRZ111B')"><div class="node-code">DRZ111B</div><div class="node-title">Seguimiento</div><div class="node-badge">1 documento</div></div></div>
+      <div class="node-wrap hidden" id="wrap-DRZ111C"><div class="node" id="node-DRZ111C" onclick="handleNodeClick('DRZ111C')"><div class="node-code">DRZ111C</div><div class="node-title">Cierre</div><div class="node-badge">1 documento</div></div></div>
+    </div>
+
+    <!-- Row 8: DRZ111A hijos nivel 7 -->
+    <div class="spacer"></div>
+    <div class="row">
+      <div class="node-wrap hidden" id="wrap-DRZ111A1"><div class="node" id="node-DRZ111A1" onclick="handleNodeClick('DRZ111A1')"><div class="node-code">DRZ111A1</div><div class="node-title">Borrador</div><div class="node-badge">1 documento</div></div></div>
+      <div class="node-wrap hidden" id="wrap-DRZ111A2"><div class="node" id="node-DRZ111A2" onclick="handleNodeClick('DRZ111A2')"><div class="node-code">DRZ111A2</div><div class="node-title">Revisión</div><div class="node-badge">1 documento</div></div></div>
+    </div>
+
+    <!-- Row 9: DRZ111A1 hijos nivel 8 -->
+    <div class="spacer"></div>
+    <div class="row">
+      <div class="node-wrap hidden" id="wrap-DRZ111A1a"><div class="node" id="node-DRZ111A1a" onclick="handleNodeClick('DRZ111A1a')"><div class="node-code">DRZ111A1a</div><div class="node-title">Versión Inicial</div><div class="node-badge">1 documento</div></div></div>
+      <div class="node-wrap hidden" id="wrap-DRZ111A1b"><div class="node" id="node-DRZ111A1b" onclick="handleNodeClick('DRZ111A1b')"><div class="node-code">DRZ111A1b</div><div class="node-title">Versión Final</div><div class="node-badge">1 documento</div></div></div>
+    </div>
+
+    <div class="canvas-footer">Bidasoako Euskal Kultur Taldea · Portal Documental Interno</div>
+  </div><!-- /canvas -->
+  </div><!-- /canvas-outer -->
+</main>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="modal-backdrop" onclick="handleBackdropClick(event)">
+  <div class="modal" id="modal">
+    <span class="modal-handle"></span>
+    <div class="modal-header">
+      <div class="modal-header-text">
+        <div class="modal-code"  id="modal-code"></div>
+        <div class="modal-title" id="modal-title"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- PIN MODAL -->
+<div class="pin-backdrop" id="pin-backdrop" onclick="handlePinBackdrop(event)">
+  <div class="pin-box">
+    <h3>Área de administración</h3>
+    <p>Introduce el PIN para gestionar los documentos</p>
+    <input class="pin-input" type="password" id="pin-input" maxlength="4" placeholder="····" />
+    <button class="pin-submit" onclick="checkPin()">Entrar</button>
+    <div class="pin-error" id="pin-error">PIN incorrecto</div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="admin-backdrop" id="admin-backdrop" onclick="handleAdminBackdrop(event)">
+  <div class="admin-panel">
+    <div class="admin-header">
+      <div>
+        <div class="admin-header-title">Administrar documentos</div>
+        <div class="admin-header-sub">Los cambios se guardan en Google Drive</div>
+      </div>
+      <button class="admin-close" onclick="closeAdmin()">×</button>
+    </div>
+    <div class="admin-body">
+      <div class="admin-nodes" id="admin-nodes"></div>
+      <div class="admin-docs"  id="admin-docs"></div>
+    </div>
+    <div class="admin-footer">
+      <div class="admin-status" id="admin-status"></div>
+      <button class="admin-save-btn" id="admin-save-btn" onclick="saveToServer()">💾 Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────
+const TREE = {
+  intro:  { code: 'EKT',    title: 'Introducción',          docs: [], children: ['BTZ000'] },
+  BTZ000: { code: 'BTZ000', title: 'Función Junta',          docs: [], children: ['ZDZ000','IDZ000','DRZ000','MTN000','BG000','KLT000'] },
+  ZDZ000: { code: 'ZDZ000', title: 'Función Dirección',      docs: [], wip: true,  children: [] },
+  IDZ000: { code: 'IDZ000', title: 'Función Secretaría',     docs: [], wip: true,  children: [] },
+  DRZ000: { code: 'DRZ000', title: 'Función Tesorería',      docs: [],             children: ['DRZ100','DRZ200','DRZ300'] },
+  MTN000: { code: 'MTN000', title: 'Función Mantenimiento',  docs: [], wip: true,  children: [] },
+  BG000:  { code: 'BG000',  title: 'Función Bodega',         docs: [], wip: true,  children: [] },
+  KLT000: { code: 'KLT000', title: 'Función Cultura',        docs: [], wip: true,  children: [] },
+  // TEST — DRZ tree (borrar cuando se confirme)
+  DRZ100:    { code: 'DRZ100',    title: 'Presupuestos',        docs: [], children: ['DRZ110','DRZ120','DRZ130'] },
+  DRZ200:    { code: 'DRZ200',    title: 'Pagos y Cobros',      docs: [], children: [] },
+  DRZ300:    { code: 'DRZ300',    title: 'Auditoría',           docs: [], children: [] },
+  DRZ110:    { code: 'DRZ110',    title: 'Presupuesto Anual',   docs: [], children: ['DRZ111','DRZ112'] },
+  DRZ120:    { code: 'DRZ120',    title: 'Presupuesto Eventos', docs: [], children: [] },
+  DRZ130:    { code: 'DRZ130',    title: 'Reservas',            docs: [], children: [] },
+  DRZ111:    { code: 'DRZ111',    title: 'Ejercicio Corriente', docs: [], children: ['DRZ111A','DRZ111B','DRZ111C'] },
+  DRZ112:    { code: 'DRZ112',    title: 'Histórico',           docs: [], children: [] },
+  DRZ111A:   { code: 'DRZ111A',   title: 'Aprobación Junta',   docs: [], children: ['DRZ111A1','DRZ111A2'] },
+  DRZ111B:   { code: 'DRZ111B',   title: 'Seguimiento',         docs: [], children: [] },
+  DRZ111C:   { code: 'DRZ111C',   title: 'Cierre',              docs: [], children: [] },
+  DRZ111A1:  { code: 'DRZ111A1',  title: 'Borrador',            docs: [], children: ['DRZ111A1a','DRZ111A1b'] },
+  DRZ111A2:  { code: 'DRZ111A2',  title: 'Revisión',            docs: [], children: [] },
+  DRZ111A1a: { code: 'DRZ111A1a', title: 'Versión Inicial',     docs: [], children: [] },
+  DRZ111A1b: { code: 'DRZ111A1b', title: 'Versión Final',       docs: [], children: [] }
+};
+
+// ── LEVEL & COLOR ─────────────────────────────────────────────────
+// Palette for levels 0–4; level 5+ gets progressively darker grey
+const LEVEL_PALETTE = [
+  '#2A6E2A',  // 0 — Verde EKT
+  '#C41217',  // 1 — Rojo EKT
+  '#A08060',  // 2 — Marrón tierra
+  '#4A6580',  // 3 — Azul pizarra
+  '#B8960C',  // 4 — Mostaza
+];
+const DEEP_BASE = 0x60; // starting grey channel for level 5 (#606060)
+
+function levelColor(depth) {
+  if (depth < LEVEL_PALETTE.length) return LEVEL_PALETTE[depth];
+  // Level 5+: lighten from #606060 by 20 per extra level, cap at #D0D0D0
+  const extra = depth - LEVEL_PALETTE.length;
+  const ch = Math.min(0xD0, DEEP_BASE + extra * 20);
+  const hex = ch.toString(16).padStart(2, '0');
+  return `#${hex}${hex}${hex}`;
+}
+
+// Compute depth of every node (BFS from root 'intro')
+const NODE_DEPTH = {};
+(function computeDepths() {
+  const queue = [{ id: 'intro', depth: 0 }];
+  while (queue.length) {
+    const { id, depth } = queue.shift();
+    NODE_DEPTH[id] = depth;
+    (TREE[id].children || []).forEach(childId => queue.push({ id: childId, depth: depth + 1 }));
+  }
+})();
+
+// Apply border-top color and indicator to a node element
+function applyNodeColor(id) {
+  const el   = document.getElementById('node-' + id);
+  if (!el) return;
+  const data = TREE[id];
+  el.style.borderTop = `3px solid ${levelColor(NODE_DEPTH[id] ?? 0)}`;
+
+  // Remove any existing indicator
+  el.querySelectorAll('.node-chevron, .node-stop, .node-wip').forEach(e => e.remove());
+
+  if (data.children.length > 0) {
+    // Has real children → chevron
+    const ch = document.createElement('span');
+    ch.className = 'node-chevron'; ch.textContent = '▼';
+    el.appendChild(ch);
+  } else if (data.wip) {
+    // No children but marked WIP → wip label
+    const wip = document.createElement('span');
+    wip.className = 'node-wip'; wip.textContent = '🔧 En construcción';
+    el.appendChild(wip);
+  } else {
+    // True leaf → stop bar
+    const stop = document.createElement('span');
+    stop.className = 'node-stop';
+    el.appendChild(stop);
+  }
+}
+
+// Apply all node colors on init
+function applyAllColors() {
+  Object.keys(TREE).forEach(id => applyNodeColor(id));
+}
+
+// ── STATE ─────────────────────────────────────────────────────────
+// Which nodes are currently visible/expanded
+const state = {
+  visible:  new Set(['intro']),
+  expanded: new Set()
+};
+
+// ── SIDEBAR ───────────────────────────────────────────────────────
+document.getElementById('hamburger').addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
+function closeSidebar() { document.body.classList.remove('sidebar-open'); }
+
+function jumpTo(id) {
+  closeSidebar();
+  const wrap = document.getElementById('wrap-' + id);
+  if (!wrap || wrap.classList.contains('hidden')) return;
+  const main = document.getElementById('main');
+  const mr = main.getBoundingClientRect();
+  const wr = wrap.getBoundingClientRect();
+  main.scrollTo({ top: main.scrollTop + (wr.top - mr.top) - mr.height / 2 + wr.height / 2, behavior: 'smooth' });
+}
+
+function resetAll() {
+  closeSidebar();
+  closeModal();
+  // Hide all except intro, collapse all
+  Object.keys(TREE).forEach(id => {
+    if (id === 'intro') return;
+    document.getElementById('wrap-' + id).classList.add('hidden');
+  });
+  state.visible  = new Set(['intro']);
+  state.expanded = new Set();
+  // Remove expanded style from all nodes
+  document.querySelectorAll('.node.expanded').forEach(n => n.classList.remove('expanded'));
+  setTimeout(() => {
+    drawConnectors();
+    scrollToWrap('wrap-intro');
+  }, 50);
+}
+
+// ── EXPAND / COLLAPSE ─────────────────────────────────────────────
+function expandChildren(parentId) {
+  const node = TREE[parentId];
+  node.children.forEach(childId => {
+    state.visible.add(childId);
+    document.getElementById('wrap-' + childId).classList.remove('hidden');
+  });
+  state.expanded.add(parentId);
+  document.getElementById('node-' + parentId).classList.add('expanded');
+}
+
+function collapseChildren(parentId) {
+  // Recursively hide all descendants
+  function hideDesc(id) {
+    TREE[id].children.forEach(childId => {
+      state.visible.delete(childId);
+      state.expanded.delete(childId);
+      document.getElementById('wrap-'  + childId).classList.add('hidden');
+      document.getElementById('node-'  + childId).classList.remove('expanded');
+      hideDesc(childId);
+    });
+  }
+  hideDesc(parentId);
+  state.expanded.delete(parentId);
+  document.getElementById('node-' + parentId).classList.remove('expanded');
+}
+
+// ── NODE CLICK ────────────────────────────────────────────────────
+function handleNodeClick(id) {
+  const node = TREE[id];
+  const hasChildren = node.children.length > 0;
+  const isExpanded  = state.expanded.has(id);
+
+  if (hasChildren && isExpanded) {
+    // Already expanded → collapse
+    collapseChildren(id);
+    closeModal();
+    setTimeout(drawConnectors, 50);
+    return;
+  }
+
+  // Open modal with docs + children cards
+  openModal(id);
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────
+function openModal(id) {
+  const n = TREE[id];
+  document.getElementById('modal-code').textContent  = n.code;
+  document.getElementById('modal-title').textContent = n.title;
+
+  const body = document.getElementById('modal-body');
+  body.innerHTML = '';
+
+  // --- Documents section ---
+  const docSection = document.createElement('div');
+
+  const docLabel = document.createElement('div');
+  docLabel.className = 'modal-section-label';
+  docLabel.textContent = 'Documentos';
+  docSection.appendChild(docLabel);
+
+  const docList = document.createElement('div');
+  docList.className = 'doc-list';
+  n.docs.forEach(doc => {
+    const a = document.createElement('a');
+    a.className = 'doc-item';
+    a.href = doc.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.innerHTML = `
+      <div class="doc-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+      </div>
+      <div class="doc-info">
+        <div class="doc-name">${doc.name}</div>
+        <div class="doc-meta">Google Drive · ${doc.lang}</div>
+      </div>
+      <div class="doc-arrow">↗</div>`;
+    docList.appendChild(a);
+  });
+  docSection.appendChild(docList);
+  body.appendChild(docSection);
+
+  // --- Children section ---
+  const childSection = document.createElement('div');
+  const childLabel = document.createElement('div');
+  childLabel.className = 'modal-section-label';
+  childLabel.textContent = 'Áreas relacionadas';
+  childSection.appendChild(childLabel);
+
+  if (n.children.length > 0) {
+    const grid = document.createElement('div');
+    grid.className = 'children-grid';
+
+    n.children.forEach(childId => {
+      const child = TREE[childId];
+      const card  = document.createElement('div');
+      card.className = 'child-card';
+      const childColor = levelColor(NODE_DEPTH[childId] ?? 0);
+      const hasGrandchildren = child.children.length > 0;
+      const isWip = child.wip;
+      const hintHTML = isWip
+        ? `<div class="child-card-wip">🔧 En construcción</div>`
+        : hasGrandchildren
+          ? `<div class="child-card-hint">Expandir →</div>`
+          : `<div class="child-card-hint" style="color:#aaa">— último nivel —</div>`;
+      card.innerHTML = `
+        <div class="child-card-stripe" style="background:${childColor}"></div>
+        <div class="child-card-code">${child.code}</div>
+        <div class="child-card-title">${child.title}</div>
+        ${hintHTML}`;
+      if (!isWip) {
+        card.addEventListener('click', () => {
+          closeModal();
+          expandChildren(id);
+          setTimeout(() => { drawConnectors(); scrollToWrap('wrap-' + childId); }, 60);
+        });
+      } else {
+        card.classList.add('wip');
+      }
+      grid.appendChild(card);
+    });
+
+    childSection.appendChild(grid);
+
+    // Expand-all button
+    const expandBtn = document.createElement('button');
+    expandBtn.className = 'modal-expand-btn';
+    expandBtn.innerHTML = '⊞ &nbsp;Expandir todas las áreas del siguiente nivel';
+    expandBtn.addEventListener('click', () => {
+      closeModal();
+      expandChildren(id);
+      setTimeout(drawConnectors, 60);
+    });
+    childSection.appendChild(expandBtn);
+
+  } else if (n.wip) {
+    // WIP node — no children yet
+    const wipDiv = document.createElement('div');
+    wipDiv.className = 'modal-wip';
+    wipDiv.innerHTML = '🔧 &nbsp;Esta área está en construcción. Próximamente se añadirán subapartados.';
+    childSection.appendChild(wipDiv);
+  } else {
+    // True leaf
+    const leafDiv = document.createElement('div');
+    leafDiv.className = 'modal-wip';
+    leafDiv.style.color = '#aaa';
+    leafDiv.style.borderColor = '#eee';
+    leafDiv.innerHTML = '▬ &nbsp;Este es el nivel más profundo de esta rama.';
+    childSection.appendChild(leafDiv);
+  }
+
+  body.appendChild(childSection);
+
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal-backdrop').classList.remove('open'); }
+function handleBackdropClick(e) { if (e.target === document.getElementById('modal-backdrop')) closeModal(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── SCROLL ────────────────────────────────────────────────────────
+function scrollToWrap(wrapId) {
+  const el = document.getElementById(wrapId);
+  if (!el) return;
+  const main = document.getElementById('main');
+  const mr = main.getBoundingClientRect();
+  const er = el.getBoundingClientRect();
+  // Center both vertically and horizontally
+  const targetTop  = main.scrollTop  + (er.top  - mr.top)  - mr.height / 2 + er.height / 2;
+  const targetLeft = main.scrollLeft + (er.left - mr.left) - mr.width  / 2 + er.width  / 2;
+  main.scrollTo({ top: targetTop, left: targetLeft, behavior: 'smooth' });
+  // Pulse
+  const node = el.querySelector('.node');
+  if (node) {
+    node.style.boxShadow = '0 0 0 3px rgba(196,18,23,.45)';
+    setTimeout(() => { node.style.boxShadow = ''; }, 900);
+  }
+}
+
+// ── SVG CONNECTORS ────────────────────────────────────────────────
+function getPos(el, container) {
+  const er = el.getBoundingClientRect();
+  const cr = container.getBoundingClientRect();
+  return {
+    x:      er.left - cr.left + er.width / 2,
+    top:    er.top  - cr.top,
+    bottom: er.top  - cr.top + er.height
+  };
+}
+
+function drawConnectors() {
+  const svg    = document.getElementById('connector-svg');
+  const canvas = document.getElementById('canvas');
+  svg.innerHTML = '';
+
+  const pairs = [
+    ['node-intro',    'node-BTZ000'],
+    ['node-BTZ000',   'node-ZDZ000'],
+    ['node-BTZ000',   'node-IDZ000'],
+    ['node-BTZ000',   'node-DRZ000'],
+    ['node-BTZ000',   'node-MTN000'],
+    ['node-BTZ000',   'node-BG000'],
+    ['node-BTZ000',   'node-KLT000'],
+    // TEST — DRZ tree
+    ['node-DRZ000',   'node-DRZ100'],
+    ['node-DRZ000',   'node-DRZ200'],
+    ['node-DRZ000',   'node-DRZ300'],
+    ['node-DRZ100',   'node-DRZ110'],
+    ['node-DRZ100',   'node-DRZ120'],
+    ['node-DRZ100',   'node-DRZ130'],
+    ['node-DRZ110',   'node-DRZ111'],
+    ['node-DRZ110',   'node-DRZ112'],
+    ['node-DRZ111',   'node-DRZ111A'],
+    ['node-DRZ111',   'node-DRZ111B'],
+    ['node-DRZ111',   'node-DRZ111C'],
+    ['node-DRZ111A',  'node-DRZ111A1'],
+    ['node-DRZ111A',  'node-DRZ111A2'],
+    ['node-DRZ111A1', 'node-DRZ111A1a'],
+    ['node-DRZ111A1', 'node-DRZ111A1b'],
+  ];
+
+  pairs.forEach(([fromId, toId]) => {
+    const fromWrap = document.getElementById('wrap-' + fromId.replace('node-',''));
+    const toWrap   = document.getElementById('wrap-' + toId.replace('node-',''));
+    const fromEl   = document.getElementById(fromId);
+    const toEl     = document.getElementById(toId);
+    if (!fromEl || !toEl) return;
+
+    // Hide connector if either end is hidden
+    const hidden = fromWrap?.classList.contains('hidden') || toWrap?.classList.contains('hidden');
+
+    const from = getPos(fromEl, canvas);
+    const to   = getPos(toEl,   canvas);
+    const cy   = (from.bottom + to.top) / 2;
+    const d    = `M ${from.x} ${from.bottom} C ${from.x} ${cy}, ${to.x} ${cy}, ${to.x} ${to.top}`;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d);
+    if (hidden) path.style.display = 'none';
+    path.addEventListener('click', () => !hidden && scrollToWrap('wrap-' + toId.replace('node-','')));
+    svg.appendChild(path);
+
+    const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    hit.setAttribute('d', d);
+    hit.classList.add('hitarea');
+    if (hidden) hit.style.display = 'none';
+    hit.addEventListener('click', () => !hidden && scrollToWrap('wrap-' + toId.replace('node-','')));
+    svg.appendChild(hit);
+  });
+}
+
+// ── APPS SCRIPT ───────────────────────────────────────────────────
+const SCRIPT_URL   = 'https://script.google.com/macros/s/AKfycbx19eO-xC_eWQEe9H_Fwa1dc7u8n8BC4CZW3kP7xgeGNc3Vb6WjxV4FcMxuae1FiL2P1w/exec';
+const CACHE_KEY    = 'ekt_portal_docs_cache';
+const CACHE_TS_KEY = 'ekt_portal_docs_cache_ts';
+const SUPPORT_MAIL = 'bidasoakoekt@gmail.com';
+const TIMEOUT_MS   = 30000; // 30 s — Apps Script puede tardar en despertar
+
+let LIVE_DOCS        = null;
+let DB_CONNECTED     = false; // admin only enabled when true
+let LAST_ERROR_REPORT = null; // stores last error details for email
+
+// ── ERROR CLASSIFICATION ──────────────────────────────────────────
+function classifyError(err, responseStatus) {
+  const msg = (err?.message || '').toLowerCase();
+  if (!navigator.onLine)                          return { type: 'Red / Internet',    code: 'NET_OFFLINE',    hint: 'El dispositivo no tiene conexión a internet.' };
+  if (msg.includes('timeout') || msg.includes('aborted')) return { type: 'Red / Timeout',     code: 'NET_TIMEOUT',    hint: 'La conexión tardó demasiado. El servidor puede estar lento.' };
+  if (msg.includes('failed to fetch') || msg.includes('networkerror')) return { type: 'Red / CORS o red',  code: 'NET_CORS',       hint: 'El navegador bloqueó la petición o no hay red.' };
+  if (responseStatus === 401 || responseStatus === 403) return { type: 'Apps Script',         code: 'SCRIPT_AUTH',    hint: 'Los permisos del script han caducado. Hay que reautorizar en Google Apps Script.' };
+  if (responseStatus === 429)                     return { type: 'Apps Script',         code: 'SCRIPT_QUOTA',   hint: 'Cuota diaria de Google Apps Script superada. Se restablece a medianoche.' };
+  if (responseStatus >= 500)                      return { type: 'Apps Script / Google', code: 'SCRIPT_DOWN',    hint: 'El servidor de Google Apps Script ha devuelto un error interno.' };
+  if (msg.includes('json') || msg.includes('syntax') || msg.includes('unexpected')) return { type: 'Base de datos (JSON)', code: 'JSON_CORRUPT', hint: 'El archivo JSON está corrupto o mal formado. Revisa el contenido en Drive.' };
+  if (msg.includes('not found') || msg.includes('no encontrado')) return { type: 'Google Drive',       code: 'DRIVE_NOTFOUND', hint: 'El archivo "base de datos app portal documental.json" no se encuentra en Drive.' };
+  if (msg.includes('permission') || msg.includes('permiso'))      return { type: 'Google Drive',       code: 'DRIVE_PERM',     hint: 'Sin permisos para acceder al archivo en Drive.' };
+  return { type: 'Desconocido',                                    code: 'UNKNOWN',         hint: 'Error no identificado. Consulta los detalles técnicos.' };
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString('es-ES') + ' a las ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+function fmtDateEmail(d) {
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const min= String(d.getMinutes()).padStart(2,'0');
+  return `${dd}-${mm}-${yy} (${hh}h${min})`;
+}
+
+// ── CACHE ─────────────────────────────────────────────────────────
+function saveCache(data) {
+  try {
+    localStorage.setItem(CACHE_KEY,    JSON.stringify(data));
+    localStorage.setItem(CACHE_TS_KEY, new Date().toISOString());
+  } catch(e) {}
+}
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    const ts  = localStorage.getItem(CACHE_TS_KEY);
+    if (!raw) return null;
+    return { data: JSON.parse(raw), ts: ts ? new Date(ts) : null };
+  } catch(e) { return null; }
+}
+
+// ── APPLY DOCS TO TREE ────────────────────────────────────────────
+function applyDocsToTree(data) {
+  Object.keys(data).forEach(id => {
+    if (TREE[id]) TREE[id].docs = (data[id] || []).slice().sort((a,b) => a.name.localeCompare(b.name,'es'));
+  });
+  Object.keys(TREE).forEach(id => {
+    const badge = document.querySelector(`#node-${id} .node-badge`);
+    if (badge) {
+      const n = TREE[id].docs.length;
+      badge.textContent = n === 0 ? 'Sin documentos' : n === 1 ? '1 documento' : `${n} documentos`;
+    }
+  });
+}
+
+// ── CACHE BANNER ──────────────────────────────────────────────────
+function showCacheBanner(ts) {
+  let banner = document.getElementById('cache-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'cache-banner';
+    banner.style.cssText = `position:fixed;bottom:0;left:0;right:0;z-index:150;
+      background:#B8960C;color:#fff;font-size:12px;font-weight:600;
+      padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;`;
+    document.body.appendChild(banner);
+  }
+  const tsText = ts ? `Última actualización: ${fmtDate(ts)}` : 'Fecha desconocida';
+  banner.innerHTML = `
+    <span>⚠️ Datos en caché · ${tsText} · Puede que no estén completamente actualizados</span>
+    <button onclick="document.getElementById('cache-banner').remove()" style="background:none;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px;">✕</button>`;
+}
+
+// ── ERROR SCREEN ──────────────────────────────────────────────────
+function showErrorScreen(errInfo, rawErr, attemptDuration, retryCount) {
+  const now   = new Date();
+  const cache = loadCache();
+
+  LAST_ERROR_REPORT = {
+    ts: now, errInfo, rawErr: rawErr?.message || String(rawErr),
+    duration: attemptDuration, retries: retryCount,
+    browser: navigator.userAgent,
+    screen:  `${window.screen.width}×${window.screen.height}`,
+    lang:    navigator.language,
+    online:  navigator.onLine
+  };
+
+  let screen = document.getElementById('error-screen');
+  if (!screen) {
+    screen = document.createElement('div');
+    screen.id = 'error-screen';
+    screen.style.cssText = `position:fixed;inset:0;z-index:500;
+      background:rgba(17,17,17,.96);display:flex;align-items:center;justify-content:center;padding:20px;`;
+    document.body.appendChild(screen);
+  }
+
+  const cacheBtn = cache
+    ? `<button onclick="useCacheAndDismiss()" style="${btnStyle('#B8960C')}">📦 Usar caché</button>`
+    : `<button disabled style="${btnStyle('#555')}">📦 Sin caché disponible</button>`;
+
+  screen.innerHTML = `
+    <div style="background:#1A1A1A;border-radius:16px;width:min(540px,96vw);max-height:90vh;overflow-y:auto;
+      box-shadow:0 24px 80px rgba(0,0,0,.5);border-top:3px solid #C41217;">
+      <div style="padding:24px 24px 0;">
+        <div style="font-size:11px;color:#888;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Portal Documental · EKT</div>
+        <div style="font-family:'Playfair Display',serif;font-size:20px;color:#fff;margin-bottom:6px;">❌ No se pudo conectar a la base de datos</div>
+        <div style="font-size:13px;color:#aaa;margin-bottom:20px;line-height:1.6;">
+          <strong style="color:#E88;">Tipo de fallo:</strong> ${errInfo.type}<br>
+          <span style="color:#999;">${errInfo.hint}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
+          <button onclick="retryConnection()" style="${btnStyle('#C41217')}">🔄 Reintentar</button>
+          ${cacheBtn}
+          <button onclick="exitApp()" style="${btnStyle('#333')}">✕ Salir</button>
+        </div>
+        <div style="border-top:1px solid #2a2a2a;padding-top:14px;">
+          <button onclick="toggleTechDetails()" style="background:none;border:none;color:#666;font-size:12px;cursor:pointer;padding:0;">
+            ▶ Ver detalles técnicos
+          </button>
+          <div id="tech-details" style="display:none;margin-top:12px;background:#111;border-radius:8px;padding:14px;font-size:11px;color:#888;line-height:1.8;font-family:monospace;">
+            <b style="color:#aaa;">RESUMEN</b><br>
+            Fecha y hora: ${fmtDate(now)}<br>
+            Tipo de fallo: ${errInfo.type} [${errInfo.code}]<br>
+            <br><b style="color:#aaa;">DETALLES</b><br>
+            Mensaje: ${rawErr?.message || String(rawErr)}<br>
+            Duración intento: ${(attemptDuration/1000).toFixed(1)}s<br>
+            Reintentos: ${retryCount}<br>
+            <br><b style="color:#aaa;">ENTORNO</b><br>
+            Navegador: ${navigator.userAgent}<br>
+            Pantalla: ${window.screen.width}×${window.screen.height}<br>
+            Idioma: ${navigator.language}<br>
+            Conexión: ${navigator.onLine ? 'online' : 'offline'}<br>
+          </div>
+        </div>
+        <div style="padding:14px 0 24px;">
+          <button onclick="sendErrorEmail()" style="background:none;border:1px solid #333;color:#888;border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;width:100%;transition:all .15s;"
+            onmouseover="this.style.borderColor='#C41217';this.style.color='#C41217'"
+            onmouseout="this.style.borderColor='#333';this.style.color='#888'">
+            📧 Enviar informe de error a soporte
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function btnStyle(bg) {
+  return `background:${bg};color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;`;
+}
+
+function toggleTechDetails() {
+  const el  = document.getElementById('tech-details');
+  const btn = el.previousElementSibling;
+  if (el.style.display === 'none') { el.style.display = 'block'; btn.textContent = '▼ Ocultar detalles técnicos'; }
+  else                              { el.style.display = 'none';  btn.textContent = '▶ Ver detalles técnicos'; }
+}
+
+function exitApp() { window.close(); history.back(); }
+
+function useCacheAndDismiss() {
+  const cache = loadCache();
+  if (!cache) return;
+  applyDocsToTree(cache.data);
+  LIVE_DOCS    = cache.data;
+  DB_CONNECTED = false; // still no live connection — admin stays locked
+  const screen = document.getElementById('error-screen');
+  if (screen) screen.remove();
+  showCacheBanner(cache.ts);
+}
+
+async function sendErrorEmail() {
+  if (!LAST_ERROR_REPORT) return;
+  const r   = LAST_ERROR_REPORT;
+  const btn = document.querySelector('[onclick="sendErrorEmail()"]');
+
+  const params = {
+    subject: `APP PORTAL DOCUMENTAL EKT - Error - ${fmtDateEmail(r.ts)}`,
+    body:
+`──────────────────────────────────────────
+INFORME DE ERROR — Portal Documental EKT
+──────────────────────────────────────────
+
+RESUMEN
+Fecha y hora:     ${fmtDate(r.ts)}
+Tipo de fallo:    ${r.errInfo.type} [${r.errInfo.code}]
+Descripción:      ${r.errInfo.hint}
+
+DETALLES TÉCNICOS
+Mensaje de error: ${r.rawErr}
+Duración intento: ${(r.duration/1000).toFixed(1)} segundos
+Reintentos:       ${r.retries}
+
+ENTORNO
+Navegador:        ${r.browser}
+Pantalla:         ${r.screen}
+Idioma:           ${r.lang}
+Conexión:         ${r.online ? 'online' : 'offline'}
+
+──────────────────────────────────────────
+Este informe fue generado automáticamente
+por el Portal Documental de Bidasoako EKT.
+──────────────────────────────────────────`
+  };
+
+  if (btn) { btn.textContent = '⏳ Enviando…'; btn.disabled = true; }
+
+  try {
+    await emailjs.send('ekt_gmail', 'template_vo6k6gq', params);
+    if (btn) { btn.textContent = '✓ Informe enviado'; btn.style.color = '#4CAF50'; btn.style.borderColor = '#4CAF50'; }
+  } catch(e) {
+    console.error('EmailJS error:', e);
+    if (btn) { btn.textContent = '📧 Enviar informe de error a soporte'; btn.disabled = false; }
+    // Fallback: mailto si EmailJS falla
+    const sub  = encodeURIComponent(params.subject);
+    const body = encodeURIComponent(params.body);
+    window.location.href = `mailto:${SUPPORT_MAIL}?subject=${sub}&body=${body}`;
+  }
+}
+
+function showLoading(msg) {
+  const s = document.getElementById('loading-screen');
+  if (s) {
+    s.classList.remove('hidden');
+    const t = s.querySelector('.loading-text');
+    if (t && msg) t.textContent = msg;
+  }
+}
+function hideLoading() {
+  const s = document.getElementById('loading-screen');
+  if (s) s.classList.add('hidden');
+}
+
+// ── LOAD FROM SERVER ──────────────────────────────────────────────
+let _retryCount   = 0;
+let _loadStart    = 0;
+
+async function loadDocsFromServer() {
+  showLoading(_retryCount > 0 ? `Reintentando conexión… (intento ${_retryCount + 1})` : 'Conectando con la base de datos…');
+  _loadStart = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  let responseStatus = 0;
+  try {
+    const res  = await fetch(SCRIPT_URL + '?action=read', { signal: controller.signal });
+    responseStatus = res.status;
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    clearTimeout(timer);
+    if (data && typeof data === 'object' && !data.error) {
+      LIVE_DOCS    = data;
+      DB_CONNECTED = true;
+      applyDocsToTree(data);
+      saveCache(data);
+      hideLoading();
+      // Remove error screen if retrying succeeded
+      const screen = document.getElementById('error-screen');
+      if (screen) screen.remove();
+      const banner = document.getElementById('cache-banner');
+      if (banner) banner.remove();
+      updateAdminButton(true);
+    } else {
+      throw new Error(data?.error || 'Respuesta inesperada del servidor');
+    }
+  } catch(err) {
+    clearTimeout(timer);
+    hideLoading();
+    const duration = Date.now() - _loadStart;
+    const errInfo  = classifyError(err, responseStatus);
+    showErrorScreen(errInfo, err, duration, _retryCount);
+    updateAdminButton(false);
+  }
+}
+
+function retryConnection() {
+  _retryCount++;
+  const screen = document.getElementById('error-screen');
+  if (screen) screen.remove();
+  loadDocsFromServer();
+}
+
+function updateAdminButton(connected) {
+  const btn = document.querySelector('.sidebar-admin');
+  if (!btn) return;
+  if (connected) {
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+    btn.title = '';
+  } else {
+    btn.style.opacity = '.35';
+    btn.style.pointerEvents = 'none';
+    btn.title = 'No disponible sin conexión a la base de datos';
+  }
+}
+
+// ── PIN ───────────────────────────────────────────────────────────
+function openPinModal() {
+  if (!DB_CONNECTED) return;
+  closeSidebar();
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-error').style.display = 'none';
+  document.getElementById('pin-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('pin-input').focus(), 100);
+}
+function closePinModal() { document.getElementById('pin-backdrop').classList.remove('open'); }
+function handlePinBackdrop(e) { if (e.target === document.getElementById('pin-backdrop')) closePinModal(); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closePinModal(); closeAdmin(); }
+  if (e.key === 'Enter' && document.getElementById('pin-backdrop').classList.contains('open')) checkPin();
+});
+
+function checkPin() {
+  const val = document.getElementById('pin-input').value.trim();
+  if (val === '8733') { closePinModal(); openAdmin(); }
+  else {
+    document.getElementById('pin-error').style.display = 'block';
+    document.getElementById('pin-input').value = '';
+    document.getElementById('pin-input').focus();
+  }
+}
+
+// ── ADMIN PANEL ───────────────────────────────────────────────────
+let adminSelectedId = null;
+let adminDraft = {};
+
+function openAdmin() {
+  adminDraft = {};
+  Object.keys(TREE).forEach(id => { adminDraft[id] = (TREE[id].docs || []).map(d => ({...d})); });
+  renderAdminNodes();
+  selectAdminNode(Object.keys(TREE)[0]);
+  document.getElementById('admin-status').textContent = '';
+  document.getElementById('admin-status').className = 'admin-status';
+  document.getElementById('admin-backdrop').classList.add('open');
+}
+function closeAdmin() { document.getElementById('admin-backdrop').classList.remove('open'); }
+function handleAdminBackdrop(e) { if (e.target === document.getElementById('admin-backdrop')) closeAdmin(); }
+
+function renderAdminNodes() {
+  const container = document.getElementById('admin-nodes');
+  container.innerHTML = '';
+  Object.keys(TREE).forEach(id => {
+    const n = TREE[id];
+    const div = document.createElement('div');
+    div.className = 'admin-node-item' + (id === adminSelectedId ? ' active' : '');
+    div.id = 'admin-node-item-' + id;
+    const count = (adminDraft[id] || []).length;
+    div.innerHTML = `<span class="admin-node-code">${n.code}</span>${n.title}<br>
+      <span style="font-size:10px;color:var(--muted);font-weight:400">${count} doc${count!==1?'s':''}</span>`;
+    div.onclick = () => selectAdminNode(id);
+    container.appendChild(div);
+  });
+}
+
+function selectAdminNode(id) {
+  adminSelectedId = id;
+  document.querySelectorAll('.admin-node-item').forEach(el => el.classList.remove('active'));
+  const item = document.getElementById('admin-node-item-' + id);
+  if (item) item.classList.add('active');
+  renderAdminDocs(id);
+}
+
+function renderAdminDocs(id) {
+  const container = document.getElementById('admin-docs');
+  container.innerHTML = '';
+  const n = TREE[id];
+  const label = document.createElement('div');
+  label.className = 'admin-docs-label';
+  label.textContent = `${n.code} · ${n.title}`;
+  container.appendChild(label);
+
+  const docs = adminDraft[id] || [];
+  if (docs.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'admin-empty';
+    empty.textContent = 'No hay documentos en esta área.';
+    container.appendChild(empty);
+  }
+
+  docs.forEach((doc, idx) => {
+    const row = document.createElement('div');
+    row.className = 'admin-doc-row';
+    row.innerHTML = `
+      <div class="admin-doc-inputs">
+        <input type="text" placeholder="Nombre del documento" value="${escHtml(doc.name)}" data-field="name" data-idx="${idx}" />
+        <input type="url"  placeholder="URL de Google Drive"  value="${escHtml(doc.url)}"  data-field="url"  data-idx="${idx}" />
+      </div>
+      <div class="admin-doc-btns">
+        <button class="admin-btn-icon admin-btn-del" title="Eliminar" onclick="adminDeleteDoc(${idx})">✕</button>
+      </div>`;
+    row.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', () => { adminDraft[adminSelectedId][inp.dataset.idx][inp.dataset.field] = inp.value; });
+    });
+    container.appendChild(row);
+  });
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'admin-add-btn';
+  addBtn.innerHTML = '＋ &nbsp;Añadir documento';
+  addBtn.onclick = () => adminAddDoc(id);
+  container.appendChild(addBtn);
+}
+
+function adminAddDoc(id) {
+  if (!adminDraft[id]) adminDraft[id] = [];
+  adminDraft[id].push({ name: '', url: '', lang: 'ES' });
+  renderAdminDocs(id);
+  setTimeout(() => {
+    const inputs = document.getElementById('admin-docs').querySelectorAll('input[data-field="name"]');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  }, 50);
+}
+
+function adminDeleteDoc(idx) {
+  adminDraft[adminSelectedId].splice(idx, 1);
+  renderAdminDocs(adminSelectedId);
+  updateAdminNodeCount(adminSelectedId);
+}
+
+function updateAdminNodeCount(id) {
+  const item = document.getElementById('admin-node-item-' + id);
+  if (!item) return;
+  const count = (adminDraft[id] || []).length;
+  const spans = item.querySelectorAll('span');
+  if (spans[1]) spans[1].textContent = `${count} doc${count!==1?'s':''}`;
+}
+
+function escHtml(str) {
+  return (str||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function saveToServer() {
+  const toSave = {};
+  Object.keys(adminDraft).forEach(id => {
+    toSave[id] = (adminDraft[id]||[])
+      .filter(d => d.name.trim() || d.url.trim())
+      .map(d => ({ name: d.name.trim(), url: d.url.trim(), lang: d.lang||'ES' }))
+      .sort((a,b) => a.name.localeCompare(b.name,'es'));
+  });
+
+  const btn    = document.getElementById('admin-save-btn');
+  const status = document.getElementById('admin-status');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  status.className = 'admin-status'; status.textContent = '';
+
+  try {
+    const res  = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({ action:'write', pin:'8733', docs: toSave }) });
+    const data = await res.json();
+    if (data.ok) {
+      Object.keys(toSave).forEach(id => { if (TREE[id]) TREE[id].docs = toSave[id]; });
+      LIVE_DOCS = toSave;
+      saveCache(toSave);
+      Object.keys(TREE).forEach(id => {
+        const badge = document.querySelector(`#node-${id} .node-badge`);
+        if (badge) { const n = TREE[id].docs.length; badge.textContent = n===0?'Sin documentos':n===1?'1 documento':`${n} documentos`; }
+      });
+      status.className = 'admin-status ok'; status.textContent = '✓ Guardado correctamente';
+      adminDraft = toSave; renderAdminNodes(); selectAdminNode(adminSelectedId);
+    } else { throw new Error(data.error || 'Error desconocido'); }
+  } catch(e) {
+    status.className = 'admin-status err'; status.textContent = '✗ Error: ' + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Guardar cambios';
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+window.addEventListener('load', () => setTimeout(() => {
+  applyAllColors();
+  drawConnectors();
+  scrollToWrap('wrap-intro');
+  updateAdminButton(false); // locked until DB confirms
+  loadDocsFromServer();
+}, 150));
+window.addEventListener('resize', () => setTimeout(drawConnectors, 50));
+</script>
+</body>
+</html>
